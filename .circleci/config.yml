@@ -41,7 +41,7 @@ jobs:
               export GOSS_FILES_STRATEGY=cp
               mkdir -p ./reports/goss
               export GOSS_OPTS="--format junit"
-              export GOSS_FILES_PATH=test
+              export GOSS_FILES_PATH=tests
               dgoss run --entrypoint="sleep" dashboard-api 600 > ./reports/goss/report.xml
 
         - store_test_results:
