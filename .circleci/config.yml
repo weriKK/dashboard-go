@@ -40,4 +40,4 @@ jobs:
               export GOSS_OPTS="--format junit"
               dgoss run --entrypoint="sleep" dashboard-api 600 > ./reports/goss/report.xml
         - store_test_results:
-            path: goss
+            path: reports
