@@ -5,5 +5,40 @@ jobs:
         - image: circleci/golang:1.13.5
       steps:
         - checkout # check out the code in the project directory
-        - run: go build -v -mod=vendor ./cmd/api
-        - run: go test -v -mod=vendor ./...
+        - setup_remote_docker: 
+            docker_layer_caching: true
+
+        - run:
+            name: Building api-service
+            command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -mod=vendor -a -tags netgo -ldflags '-w -extldflags "-static"' -o api-service ./cmd/api
+
+        - run:
+            name: Unit testing
+            command: go test -v -mod=vendor ./...
+
+        - run:
+            name: Build docker container
+            command: docker build -t dashboard-api .
+
+        - run:
+            name: Install goss
+            command: |
+              # rather than give internet scripts SU rights, we install to local user bin and add to path
+              mkdir ~/bin
+              export GOSS_DST=~/bin
+              export PATH=$PATH:~/bin
+              curl -fsSL https://goss.rocks/install | sh
+              goss -version
+        - run:
+            name: Test
+            command: |
+              # Don't forget path!
+              export PATH=$PATH:~/bin
+              # Important, change from mount to work on remote docker, see https://github.com/aelsabbahy/goss/pull/271
+              # If using machine image you do not need this.
+              export GOSS_FILES_STRATEGY=cp
+              mkdir -p ./reports/goss
+              export GOSS_OPTS="--format junit"
+              dgoss run --entrypoint="sleep" dashboard-api 600 > ./reports/goss/report.xml
+        - store_test_results:
+            path: goss
