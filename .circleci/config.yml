@@ -13,7 +13,9 @@ jobs:
 
         - run:
             name: Unit testing
-            command: go test -v -mod=vendor ./...
+            command: |
+              mkdir -p ./reports/go
+              gotestsum --junitfile ./reports/go/unit-tests.xml -- --mod=vendor ./...
 
         - run:
             name: Build docker container
