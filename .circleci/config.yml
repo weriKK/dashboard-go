@@ -8,14 +8,14 @@ jobs:
         - setup_remote_docker
 
         - run:
-            name: Building api-service
-            command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -mod=vendor -a -tags netgo -ldflags '-w -extldflags "-static"' -o api-service ./cmd/api
-
-        - run:
-            name: Unit testing
+            name: Unit test api-service
             command: |
               mkdir -p ./reports/go
               gotestsum --junitfile ./reports/go/unit-tests.xml -- --mod=vendor ./...
+                      
+        - run:
+            name: Building api-service
+            command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -mod=vendor -a -tags netgo -ldflags '-w -extldflags "-static"' -o api-service ./cmd/api
 
         - run:
             name: Build docker container
@@ -30,8 +30,9 @@ jobs:
               export PATH=$PATH:~/bin
               curl -fsSL https://goss.rocks/install | sh
               goss -version
+
         - run:
-            name: Test
+            name: Test docker container
             command: |
               # Don't forget path!
               export PATH=$PATH:~/bin
@@ -40,6 +41,8 @@ jobs:
               export GOSS_FILES_STRATEGY=cp
               mkdir -p ./reports/goss
               export GOSS_OPTS="--format junit"
+              export GOSS_FILES_PATH=test
               dgoss run --entrypoint="sleep" dashboard-api 600 > ./reports/goss/report.xml
+
         - store_test_results:
             path: reports
