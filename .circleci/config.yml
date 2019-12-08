@@ -10,8 +10,8 @@ jobs:
         - run:
             name: Unit test api-service
             command: |
-              mkdir -p ./reports/go
-              gotestsum --junitfile ./reports/go/unit-tests.xml -- --mod=vendor ./...
+              mkdir -p ~/reports/go
+              gotestsum --junitfile ~/reports/go/unit-tests.xml -- --mod=vendor ./...
                       
         - run:
             name: Building api-service
@@ -39,10 +39,13 @@ jobs:
               # Important, change from mount to work on remote docker, see https://github.com/aelsabbahy/goss/pull/271
               # If using machine image you do not need this.
               export GOSS_FILES_STRATEGY=cp
-              mkdir -p ./reports/goss
+              mkdir -p ~/reports/goss
               export GOSS_OPTS="--format junit"
               export GOSS_FILES_PATH=tests
-              dgoss run --entrypoint="sleep" dashboard-api 600 > ./reports/goss/report.xml
+              dgoss run --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/report.xml
 
         - store_test_results:
-            path: reports
+            path: ~/reports
+
+        - store_artifacts:
+            path: ~/reports            
