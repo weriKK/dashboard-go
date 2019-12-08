@@ -1,0 +1,9 @@
+version: 2.1
+  jobs:
+    build:
+      docker: 
+        - image: circleci/golang:1.13.5
+      steps:
+        - checkout # check out the code in the project directory
+        - run: go build -v -mod=vendor ./cmd/api
+        - run: go test -v -mod=vendor ./...
