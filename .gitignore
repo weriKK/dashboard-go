@@ -12,5 +12,5 @@
 *.out
 
 # Build artifacts
-api
-api-service
+./api-service
+./feed-service
