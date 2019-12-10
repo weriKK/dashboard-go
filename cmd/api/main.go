@@ -49,7 +49,17 @@ type FeedIdList struct {
 }
 
 func getFeedIdList() ([]FeedIdList, error) {
-	return []FeedIdList{}, nil
+	resp, err := http.Get("http://localhost:8080/feedidlist")
+	if err != nil {
+		return []FeedIdList{}, err
+	}
+
+	var feedIDs []FeedIdList
+	if err = json.NewDecoder(resp.Body).Decode(feedIDs); err != nil {
+		return []FeedIdList{}, err
+	}
+
+	return feedIDs, nil
 }
 
 type FeedItem struct {
@@ -69,10 +79,27 @@ type FeedContent struct {
 
 func getFeedContent(id int, limit int) (*FeedContent, error) {
 	return new(FeedContent), nil
+
+	url := fmt.Sprintf("http://localhost:8080/feedcontent/%d/%d", id, limit)
+	resp, err := http.Get(url)
+	if err != nil {
+		return new(FeedContent), err
+	}
+
+	var feedContent FeedContent
+	if err = json.NewDecoder(resp.Body).Decode(feedContent); err != nil {
+		return new(FeedContent), err
+	}
+
+	return &feedContent, nil
 }
 
 func webfeedListHandler(w http.ResponseWriter, r *http.Request) {
-	feedList, _ := getFeedIdList()
+	feedList, err := getFeedIdList()
+	if err != nil {
+		log.Panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	payload := jsonFeedList{len(feedList), []jsonFeedListItem{}}
 	for _, v := range feedList {
@@ -82,18 +109,13 @@ func webfeedListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func webFeedContentHandler(w http.ResponseWriter, r *http.Request) {
-	parsed, err := ParseUrl(r.URL)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	id, err := strconv.Atoi(parsed.LastPath)
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		log.Panic(err)
 	}
 
 	// if error, limit is set to 0
-	limit, err := parsed.GetLimitQueryParam()
+	limit, err := GetLimitQueryParam(r.URL.Query())
 
 	feedContent, _ := getFeedContent(id, limit)
 
@@ -109,9 +131,14 @@ func writeJSONPayload(w http.ResponseWriter, payload interface{}) {
 	json.NewEncoder(w).Encode(payload)
 }
 
+func statusHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 
 	r := mux.NewRouter()
+	r.HandleFunc("/status", statusHandler).Methods("GET")
 	r.HandleFunc("/webfeeds", loggermw.HandlerFunc(webfeedListHandler)).Methods("GET")
 	r.HandleFunc("/webfeeds/{id:[0-9]+}", loggermw.HandlerFunc(webFeedContentHandler)).Methods("GET")
 

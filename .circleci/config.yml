@@ -19,7 +19,7 @@ jobs:
 
         - run:
             name: Build docker container
-            command: docker build -t dashboard-api .
+            command: docker build -t dashboard-api -f Dockerfile.api .
 
         - run:
             name: Install goss
@@ -42,7 +42,7 @@ jobs:
               mkdir -p ~/reports/goss
               export GOSS_OPTS="--format junit"
               export GOSS_FILES_PATH=tests
-              dgoss run --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/report.xml
+              dgoss run --gossfile ./tests/goss-api.yaml --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/report.xml
 
         - store_test_results:
             path: ~/reports

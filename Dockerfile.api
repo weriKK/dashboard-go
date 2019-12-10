@@ -11,5 +11,4 @@ HEALTHCHECK --interval=5s --timeout=5s --retries=3 CMD curl -f http://localhost:
 EXPOSE 8080
 ENTRYPOINT ["./api-service"]
 
-
 COPY --chown=nobody:nobody api-service /dashboard

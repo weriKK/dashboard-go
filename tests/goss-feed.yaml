@@ -1,0 +1,14 @@
+file:
+  /dashboard/feed-service:
+    exists: true
+    mode: "0755"
+    size: 8238563
+    owner: nobody
+    group: nobody
+    filetype: file
+    contains: []
+package:
+  ca-certificates:
+    installed: true
+    versions:
+    - 20190108-r0
