@@ -42,7 +42,8 @@ jobs:
               mkdir -p ~/reports/goss
               export GOSS_OPTS="--format junit"
               export GOSS_FILES_PATH=tests
-              dgoss run --gossfile ./tests/goss-api.yaml --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/report.xml
+              export GOSS_FILE=goss-api.yaml
+              dgoss run --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/report.xml
 
         - store_test_results:
             path: ~/reports
