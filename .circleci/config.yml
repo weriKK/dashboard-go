@@ -20,8 +20,6 @@ jobs:
       - run:
           name: Build docker container
           command: docker build -t dashboard-api -f Dockerfile.api .
-
-
   test-api:
     docker: 
       - image: circleci/golang:1.13.5
@@ -57,7 +55,6 @@ jobs:
 
       - store_artifacts:
           path: ~/reports     
-          
   build-feed:
     docker: 
       - image: circleci/golang:1.13.5
@@ -78,8 +75,6 @@ jobs:
       - run:
           name: Build docker container
           command: docker build -t dashboard-feed -f Dockerfile.feed .
-
-          
   test-feed:
     docker: 
       - image: circleci/golang:1.13.5
@@ -118,15 +113,16 @@ jobs:
 
 
 workflows:
-  version: 2.1
-  build:
-      jobs:
-          - build-api
-          - test-api:
-            requires:
-              - build-api
-
-          - build-feed
-          - test-feed:
-            requires:
-              - build-feed           
+    version: 2.1
+    api-service:
+        jobs:
+            - build-api
+            - test-api:
+                requires:
+                  - build-api
+    feed-service:
+        jobs:                  
+            - build-feed
+            - test-feed:
+                requires:
+                  - build-feed           
