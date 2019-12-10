@@ -2,7 +2,6 @@ file:
   /dashboard/api-service:
     exists: true
     mode: "0755"
-    size: 6229858
     owner: nobody
     group: nobody
     filetype: file
