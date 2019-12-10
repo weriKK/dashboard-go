@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  build-api:
+  build-and-test-api:
     docker: 
       - image: circleci/golang:1.13.5
     steps:
@@ -20,11 +20,6 @@ jobs:
       - run:
           name: Build docker container
           command: docker build -t dashboard-api -f Dockerfile.api .
-  test-api:
-    docker: 
-      - image: circleci/golang:1.13.5
-    steps:
-      - setup_remote_docker      
 
       - run:
           name: Install goss
@@ -54,8 +49,9 @@ jobs:
           path: ~/reports
 
       - store_artifacts:
-          path: ~/reports     
-  build-feed:
+          path: ~/reports 
+
+  build-and-test-feed:
     docker: 
       - image: circleci/golang:1.13.5
     steps:
@@ -75,11 +71,6 @@ jobs:
       - run:
           name: Build docker container
           command: docker build -t dashboard-feed -f Dockerfile.feed .
-  test-feed:
-    docker: 
-      - image: circleci/golang:1.13.5
-    steps:
-      - setup_remote_docker      
 
       - run:
           name: Install goss
@@ -114,15 +105,8 @@ jobs:
 
 workflows:
     version: 2.1
-    api-service:
+    build-services:
         jobs:
-            - build-api
-            - test-api:
-                requires:
-                  - build-api
-    feed-service:
-        jobs:                  
-            - build-feed
-            - test-feed:
-                requires:
-                  - build-feed           
+            - build-and-test-api
+            - build-and-test-feed
+        
