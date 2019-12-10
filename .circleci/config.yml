@@ -1,52 +1,132 @@
 version: 2.1
 jobs:
-    build:
-      docker: 
-        - image: circleci/golang:1.13.5
-      steps:
-        - checkout # check out the code in the project directory
-        - setup_remote_docker
+  build-api:
+    docker: 
+      - image: circleci/golang:1.13.5
+    steps:
+      - checkout # check out the code in the project directory
+      - setup_remote_docker
 
-        - run:
-            name: Unit test api-service
-            command: |
-              mkdir -p ~/reports/go
-              gotestsum --junitfile ~/reports/go/unit-tests.xml -- --mod=vendor ./...
-                      
-        - run:
-            name: Building api-service
-            command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -mod=vendor -a -tags netgo -ldflags '-w -extldflags "-static"' -o api-service ./cmd/api
+      - run:
+          name: Unit test api-service
+          command: |
+            mkdir -p ~/reports/go
+            gotestsum --junitfile ~/reports/go/api-unit-tests.xml -- --mod=vendor ./...
+                    
+      - run:
+          name: Building api-service
+          command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -mod=vendor -a -tags netgo -ldflags '-w -extldflags "-static"' -o api-service ./cmd/api
 
-        - run:
-            name: Build docker container
-            command: docker build -t dashboard-api -f Dockerfile.api .
+      - run:
+          name: Build docker container
+          command: docker build -t dashboard-api -f Dockerfile.api .
 
-        - run:
-            name: Install goss
-            command: |
-              # rather than give internet scripts SU rights, we install to local user bin and add to path
-              mkdir ~/bin
-              export GOSS_DST=~/bin
-              export PATH=$PATH:~/bin
-              curl -fsSL https://goss.rocks/install | sh
-              goss -version
 
-        - run:
-            name: Test docker container
-            command: |
-              # Don't forget path!
-              export PATH=$PATH:~/bin
-              # Important, change from mount to work on remote docker, see https://github.com/aelsabbahy/goss/pull/271
-              # If using machine image you do not need this.
-              export GOSS_FILES_STRATEGY=cp
-              mkdir -p ~/reports/goss
-              export GOSS_OPTS="--format junit"
-              export GOSS_FILES_PATH=tests
-              export GOSS_FILE=goss-api.yaml
-              dgoss run --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/report.xml
+  test-api:
+    docker: 
+      - image: circleci/golang:1.13.5
+    steps:
+      - setup_remote_docker      
 
-        - store_test_results:
-            path: ~/reports
+      - run:
+          name: Install goss
+          command: |
+            # rather than give internet scripts SU rights, we install to local user bin and add to path
+            mkdir ~/bin
+            export GOSS_DST=~/bin
+            export PATH=$PATH:~/bin
+            curl -fsSL https://goss.rocks/install | sh
+            goss -version
 
-        - store_artifacts:
-            path: ~/reports            
+      - run:
+          name: Test docker container
+          command: |
+            # Don't forget path!
+            export PATH=$PATH:~/bin
+            # Important, change from mount to work on remote docker, see https://github.com/aelsabbahy/goss/pull/271
+            # If using machine image you do not need this.
+            export GOSS_FILES_STRATEGY=cp
+            mkdir -p ~/reports/goss
+            export GOSS_OPTS="--format junit"
+            export GOSS_FILES_PATH=tests
+            export GOSS_FILE=goss-api.yaml
+            dgoss run --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/api-report.xml
+
+      - store_test_results:
+          path: ~/reports
+
+      - store_artifacts:
+          path: ~/reports     
+          
+  build-feed:
+    docker: 
+      - image: circleci/golang:1.13.5
+    steps:
+      - checkout # check out the code in the project directory
+      - setup_remote_docker
+
+      - run:
+          name: Unit test feed-service
+          command: |
+            mkdir -p ~/reports/go
+            gotestsum --junitfile ~/reports/go/feed-unit-tests.xml -- --mod=vendor ./...
+                    
+      - run:
+          name: Building feed-service
+          command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -mod=vendor -a -tags netgo -ldflags '-w -extldflags "-static"' -o feed-service ./cmd/feed
+
+      - run:
+          name: Build docker container
+          command: docker build -t dashboard-feed -f Dockerfile.feed .
+
+          
+  test-feed:
+    docker: 
+      - image: circleci/golang:1.13.5
+    steps:
+      - setup_remote_docker      
+
+      - run:
+          name: Install goss
+          command: |
+            # rather than give internet scripts SU rights, we install to local user bin and add to path
+            mkdir ~/bin
+            export GOSS_DST=~/bin
+            export PATH=$PATH:~/bin
+            curl -fsSL https://goss.rocks/install | sh
+            goss -version
+
+      - run:
+          name: Test docker container
+          command: |
+            # Don't forget path!
+            export PATH=$PATH:~/bin
+            # Important, change from mount to work on remote docker, see https://github.com/aelsabbahy/goss/pull/271
+            # If using machine image you do not need this.
+            export GOSS_FILES_STRATEGY=cp
+            mkdir -p ~/reports/goss
+            export GOSS_OPTS="--format junit"
+            export GOSS_FILES_PATH=tests
+            export GOSS_FILE=goss-feed.yaml
+            dgoss run --entrypoint="sleep" dashboard-feed 600 > ~/reports/goss/feed-report.xml
+
+      - store_test_results:
+          path: ~/reports
+
+      - store_artifacts:
+          path: ~/reports  
+
+
+workflows:
+  version: 2.1
+  build:
+      jobs:
+          - build-api
+          - test-api:
+            requires:
+              - build-api
+
+          - build-feed
+          - test-feed:
+            requires:
+              - build-feed           
