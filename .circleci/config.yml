@@ -25,7 +25,7 @@ jobs:
 
       - run:
           name: Build docker container
-          command: docker build -t $DOCKER_NS/dashboard-api -f Dockerfile.api .
+          command: docker build -t $DOCKER_NS/$IMAGE_NAME:$TAG -f Dockerfile.api .
 
       - run:
           name: Install goss
@@ -49,7 +49,7 @@ jobs:
             export GOSS_OPTS="--format junit"
             export GOSS_FILES_PATH=tests
             export GOSS_FILE=goss-api.yaml
-            dgoss run --entrypoint="sleep" $DOCKER_NS/dashboard-api 600 > ~/reports/goss/api-report.xml
+            dgoss run --entrypoint="sleep" $DOCKER_NS/$IMAGE_NAME:$TAG 600 > ~/reports/goss/api-report.xml
 
       - run:
           name: Push container to Docker HUB
@@ -88,7 +88,7 @@ jobs:
 
       - run:
           name: Build docker container
-          command: docker build -t $DOCKER_NS/dashboard-feed -f Dockerfile.feed .
+          command: docker build -t $DOCKER_NS/$IMAGE_NAME:$TAG -f Dockerfile.feed .
 
       - run:
           name: Install goss
@@ -112,7 +112,7 @@ jobs:
             export GOSS_OPTS="--format junit"
             export GOSS_FILES_PATH=tests
             export GOSS_FILE=goss-feed.yaml
-            dgoss run --entrypoint="sleep" $DOCKER_NS/dashboard-feed 600 > ~/reports/goss/feed-report.xml
+            dgoss run --entrypoint="sleep" $DOCKER_NS/$IMAGE_NAME:$TAG 600 > ~/reports/goss/feed-report.xml
 
       - run:
           name: Push container to Docker HUB
