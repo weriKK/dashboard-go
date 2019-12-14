@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mmcdole/gofeed"
+	"github.com/weriKK/dashboard/config"
 	"github.com/weriKK/dashboard/loggermw"
 )
 
@@ -60,9 +61,11 @@ func webfeedIdListHandler(w http.ResponseWriter, r *http.Request) {
 		feedInfo = append(feedInfo, FeedIdList{v.Id(), v.Name(), v.Url(), v.Rss(), v.Column(), v.Limit()})
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(feedInfo); err != nil {
 		log.Error(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -97,7 +100,9 @@ func webFeedContentHandler(w http.ResponseWriter, r *http.Request) {
 	feedParser := gofeed.NewParser()
 	parsed, err := feedParser.ParseURL(feed.Rss())
 	if err != nil {
-		log.Panicf("Exception while trying to parse RSS feed URL '%v': %v", feed.Rss(), err)
+		log.Errorf("Failed to parse RSS feed '%v': %v", feed.Rss(), err)
+		http.Error(w, "Failed to parse RSS feed: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	if limit == 0 {
@@ -113,11 +118,12 @@ func webFeedContentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := FeedContent{feed.Id(), parsed.Title, feed.Url(), feed.Column(), items}
-	//return &content, nil
 
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(content); err != nil {
 		log.Error(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -133,7 +139,7 @@ func main() {
 	r.HandleFunc("/feedcontent/{id:[0-9]+}/{limit:[0-9]+}", loggermw.HandlerFunc(webFeedContentHandler)).Methods("GET")
 
 	s := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + config.GetString("SVC_PORT"),
 		Handler: r,
 	}
 

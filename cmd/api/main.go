@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/weriKK/dashboard/config"
 	"github.com/weriKK/dashboard/loggermw"
 )
 
@@ -49,13 +51,27 @@ type FeedIdList struct {
 }
 
 func getFeedIdList() ([]FeedIdList, error) {
-	resp, err := http.Get("http://localhost:8080/feedidlist")
+
+	feedSvcAPIRoot := config.GetString("FEED_SVC_API_ROOT")
+	url := fmt.Sprintf("%s/feedidlist", feedSvcAPIRoot)
+
+	resp, err := http.Get(url)
 	if err != nil {
 		return []FeedIdList{}, err
 	}
 
+	if resp.StatusCode < 200 || 299 < resp.StatusCode {
+		msg, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return []FeedIdList{}, fmt.Errorf("http error received from feed service and can't read response body: %s - %s", resp.Status, err.Error())
+		}
+
+		errorMsg := fmt.Sprintf("http error received from feed service: %s - %s", resp.Status, string(msg))
+		return []FeedIdList{}, fmt.Errorf(errorMsg)
+	}
+
 	var feedIDs []FeedIdList
-	if err = json.NewDecoder(resp.Body).Decode(feedIDs); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&feedIDs); err != nil {
 		return []FeedIdList{}, err
 	}
 
@@ -78,16 +94,27 @@ type FeedContent struct {
 }
 
 func getFeedContent(id int, limit int) (*FeedContent, error) {
-	return new(FeedContent), nil
 
-	url := fmt.Sprintf("http://localhost:8080/feedcontent/%d/%d", id, limit)
+	feedSvcAPIRoot := config.GetString("FEED_SVC_API_ROOT")
+	url := fmt.Sprintf("%s/feedcontent/%d/%d", feedSvcAPIRoot, id, limit)
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return new(FeedContent), err
 	}
 
+	if resp.StatusCode < 200 || 299 < resp.StatusCode {
+		msg, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return new(FeedContent), fmt.Errorf("http error received from feed service and can't read response body: %s - %s", resp.Status, err.Error())
+		}
+
+		errorMsg := fmt.Sprintf("http error received from feed service: %s - %s", resp.Status, string(msg))
+		return new(FeedContent), fmt.Errorf(errorMsg)
+	}
+
 	var feedContent FeedContent
-	if err = json.NewDecoder(resp.Body).Decode(feedContent); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&feedContent); err != nil {
 		return new(FeedContent), err
 	}
 
@@ -97,8 +124,9 @@ func getFeedContent(id int, limit int) (*FeedContent, error) {
 func webfeedListHandler(w http.ResponseWriter, r *http.Request) {
 	feedList, err := getFeedIdList()
 	if err != nil {
-		log.Panic(err)
+		log.Error(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	payload := jsonFeedList{len(feedList), []jsonFeedListItem{}}
@@ -111,13 +139,22 @@ func webfeedListHandler(w http.ResponseWriter, r *http.Request) {
 func webFeedContentHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		log.Panic(err)
+		log.Error(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	// if error, limit is set to 0
 	limit, err := GetLimitQueryParam(r.URL.Query())
+	if err != nil {
+		limit = 10
+	}
 
-	feedContent, _ := getFeedContent(id, limit)
+	feedContent, err := getFeedContent(id, limit)
+	if err != nil {
+		log.Error(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	payload := jsonFeed{feedContent.Id, feedContent.Name, feedContent.Url, []jsonFeedItem{}}
 	for _, v := range feedContent.Items {
@@ -143,7 +180,7 @@ func main() {
 	r.HandleFunc("/webfeeds/{id:[0-9]+}", loggermw.HandlerFunc(webFeedContentHandler)).Methods("GET")
 
 	s := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + config.GetString("SVC_PORT"),
 		Handler: r,
 	}
 
