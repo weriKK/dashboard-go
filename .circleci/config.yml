@@ -8,6 +8,12 @@ jobs:
       - setup_remote_docker
 
       - run:
+          name: Environment Setup
+          command: |
+            echo 'export TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
+            echo 'export IMAGE_NAME=dashboard-api' >> $BASH_ENV
+
+      - run:
           name: Unit test api-service
           command: |
             mkdir -p ~/reports/go
@@ -19,7 +25,7 @@ jobs:
 
       - run:
           name: Build docker container
-          command: docker build -t dashboard-api -f Dockerfile.api .
+          command: docker build -t $DOCKER_NS/dashboard-api -f Dockerfile.api .
 
       - run:
           name: Install goss
@@ -43,7 +49,13 @@ jobs:
             export GOSS_OPTS="--format junit"
             export GOSS_FILES_PATH=tests
             export GOSS_FILE=goss-api.yaml
-            dgoss run --entrypoint="sleep" dashboard-api 600 > ~/reports/goss/api-report.xml
+            dgoss run --entrypoint="sleep" $DOCKER_NS/dashboard-api 600 > ~/reports/goss/api-report.xml
+
+        - run:
+            name: Push container to Docker HUB
+            command: |
+              echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+              docker push $DOCKER_NS/$IMAGE_NAME:$TAG
 
       - store_test_results:
           path: ~/reports
@@ -59,6 +71,12 @@ jobs:
       - setup_remote_docker
 
       - run:
+        name: Environment Setup
+        command: |
+          echo 'export TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
+          echo 'export IMAGE_NAME=dashboard-feed' >> $BASH_ENV
+
+      - run:
           name: Unit test feed-service
           command: |
             mkdir -p ~/reports/go
@@ -70,7 +88,7 @@ jobs:
 
       - run:
           name: Build docker container
-          command: docker build -t dashboard-feed -f Dockerfile.feed .
+          command: docker build -t $DOCKER_NS/dashboard-feed -f Dockerfile.feed .
 
       - run:
           name: Install goss
@@ -94,7 +112,13 @@ jobs:
             export GOSS_OPTS="--format junit"
             export GOSS_FILES_PATH=tests
             export GOSS_FILE=goss-feed.yaml
-            dgoss run --entrypoint="sleep" dashboard-feed 600 > ~/reports/goss/feed-report.xml
+            dgoss run --entrypoint="sleep" $DOCKER_NS/dashboard-feed 600 > ~/reports/goss/feed-report.xml
+
+      - run:
+        name: Push container to Docker HUB
+        command: |
+          echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+          docker push $DOCKER_NS/$IMAGE_NAME:$TAG
 
       - store_test_results:
           path: ~/reports
