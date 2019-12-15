@@ -1,0 +1,32 @@
+version: '3.3'
+services:
+
+  janus:
+    image: quay.io/hellofresh/janus
+    ports:
+      - "80:8080"
+      - "8081:8081"
+    volumes:
+      - ./janus.toml:/etc/janus/janus.toml
+      - ./apis:/etc/janus/apis
+
+  dashboard-api:
+    image: dashboard-api
+    ports:
+      - 9000:8080
+    environment:
+      - FEED_SVC_API_ROOT=http://dashboard-feed:8080
+      - SVC_PORT=8080
+      - SVC_PUBLIC_API_ROOT=http://localhost:80
+
+  dashboard-feed:
+    image: dashboard-feed
+    environment:
+      - SVC_PORT=8080
+
+  # service1:
+  #   image: rodolpheche/wiremock
+  #   ports:
+  #     - '9089:8080'
+  #   volumes:
+  #     - ./stubs:/home/wiremock/mappings

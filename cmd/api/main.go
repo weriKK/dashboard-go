@@ -129,9 +129,11 @@ func webfeedListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pubUrl := config.GetString("SVC_PUBLIC_API_ROOT")
+
 	payload := jsonFeedList{len(feedList), []jsonFeedListItem{}}
 	for _, v := range feedList {
-		payload.Feeds = append(payload.Feeds, jsonFeedListItem{v.Name, v.Url, fmt.Sprintf("http://%s%s/%d", r.Host, r.URL, v.Id), v.Column, v.ItemLimit})
+		payload.Feeds = append(payload.Feeds, jsonFeedListItem{v.Name, v.Url, fmt.Sprintf("%s%s/%d", pubUrl, r.URL, v.Id), v.Column, v.ItemLimit})
 	}
 	writeJSONPayload(w, payload)
 }

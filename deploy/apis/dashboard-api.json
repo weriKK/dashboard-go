@@ -1,0 +1,34 @@
+{
+    "name" : "dashboard-api",
+    "active" : true,
+    "proxy" : {
+        "preserve_host" : false,
+        "listen_path" : "/webfeeds/*",
+        "upstreams" : {
+            "balancing": "roundrobin",
+            "targets": [
+                {"target": "http://dashboard-api:8080"}
+            ]
+        },
+        "strip_path" : false,
+        "append_path" : true,
+        "methods" : ["GET"]
+    },
+    "health_check": {
+        "url": "http://dashboard-api:8080/status",
+        "timeout": 3
+    },
+    "plugins": [
+		{
+            "name": "cors",
+            "enabled": true,
+            "config": {
+                "domains": ["*"],
+                "methods": ["GET"],
+                "request_headers": ["*"],
+                "exposed_headers": [],
+                "options_passthrough": false
+            }
+		}
+    ]    
+}
